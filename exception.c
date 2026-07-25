@@ -31,10 +31,9 @@ void EXTI15_10_IRQHandler(void)
 	
 	if(key_state == Key_Wait)
 	{
-		printf("Key Wait!!\n");
+		printf("Key Wait!! -> Key_Hold\n");
 		key_state = Key_Hold;
 		// Key가 눌리면 UART로 데이터를 받으면 안되기 때문에 Disabled 시켜주어야함.
-		Uart2_RX_Interrupt_Enable(0);
 		printf("TIM2 START!!\n");
 		TIM2_Interrupt_Enable(3000);
 	}
@@ -60,6 +59,7 @@ void EXTI15_10_IRQHandler(void)
 		if(btn_holding_time >= LONG_KEY_TIME )
 		{
 			key_state = Key_Long;
+			TIM2_Expired = 1;
 		}
 		else if(btn_holding_time <= Short_KEY_TIME)
 		{
@@ -77,20 +77,17 @@ void EXTI15_10_IRQHandler(void)
 
 void USART2_IRQHandler(void)
 {
-
 	printf("UART RX_INT!!");
     if(Uart_Data_In == 0)
     {
 		printf("Uart_Data_In = 0!!");
 		Uart_Data = (unsigned char)USART2->DR;
         Uart_Data_In = 1;
-		Key_ISR_Enable(0);
 
         if(Uart_Data == 'S' || Uart_Data == 's')
         {
 			cur_motor_state = MOTOR_STOP;
 			Uart_Data_In = 0;
-			Key_ISR_Enable(1);
         }
 		else if(Uart_Data == 'F' || Uart_Data == 'f')
 		{
@@ -102,7 +99,6 @@ void USART2_IRQHandler(void)
 			{
 				cur_motor_state = MOTOR_CW;
 				Uart_Data_In = 0;
-				Key_ISR_Enable(1);
 			}
 		}
 		else if(Uart_Data == 'R' || Uart_Data == 'r')
@@ -115,7 +111,6 @@ void USART2_IRQHandler(void)
 			{
 				cur_motor_state = MOTOR_CCW;
 				Uart_Data_In = 0;
-				Key_ISR_Enable(1);
 			}
 		}
 		else if((Uart_Data >= '0' && Uart_Data <= '9'))
@@ -131,16 +126,18 @@ void USART2_IRQHandler(void)
 				pre_motor_state = MOTOR_STOP;
 				Uart_Data_In = 0;
 			}
-			Key_ISR_Enable(1);
 		}
 		else
 		{
 			printf("Invalid Input. Type Again!!!\n");
 			(void) USART2 -> DR;
 			Uart_Data_In = 0;
-			Key_ISR_Enable(1);
 		}
     }
+	else // Uart_Data_In == 0
+	{
+		(void)USART2->DR;
+	}
 
     NVIC_ClearPendingIRQ(38);
 }
@@ -161,8 +158,9 @@ void TIM2_IRQHandler(void)
 {
     Macro_Clear_Bit(TIM2->SR, 0);
     NVIC_ClearPendingIRQ(28);
-
-    TIM2_Expired = 1;
+	printf("Timer2_Expired\n");
+    // TIM2_Expired = 1;
+	key_state = Key_Long;
     //한번부르고 인터럽트 disable
     NVIC_DisableIRQ(28);
     Macro_Clear_Bit(TIM2->CR1, 0);

@@ -59,11 +59,10 @@ void Main(void)
 			pre_motor_state = cur_motor_state;
 		}
 
-		if(TIM2_Expired)
+		if(key_state == Key_Pause && Key_Get_Released() && Macro_Check_Bit_Clear(TIM4 -> CR1, 0))
 		{
-			cur_motor_state = MOTOR_STOP;
-			TIM2_Expired = 0;
-			btn_holding_time = BTN_HODING_MAX;
+			Key_ISR_Enable(1);
+			key_state = Key_Wait;
 		}
 
 		if(key_state == Key_Short)
@@ -73,46 +72,39 @@ void Main(void)
 			{
 				cur_motor_state = MOTOR_CW;
 				key_state = Key_Wait;
-				Uart2_RX_Interrupt_Enable(1);
 			}
 			
 			else // 모터가 동작중일 때
 			{
-				motor_tmp = !cur_motor_state;
-				cur_motor_state = MOTOR_STOP;
+				Key_ISR_Enable(0);
+				printf("EXTI OFF\n");
+				// motor_tmp = !cur_motor_state;
+				// cur_motor_state = MOTOR_STOP;
+				motor_stop(duty);
 				printf("TIM4 Start\n");
-				TIM4_Delay_Interrupt_Enable(1000);
+				if(Macro_Check_Bit_Clear(TIM4 -> CR1, 0))
+				{
+					TIM4_Delay_Interrupt_Enable(1000);
+				}
+				printf("Key_Pause\n");
 				key_state = Key_Pause;
 			}
 		}
-		else if(key_state == Key_Long)
+
+		else if(key_state == Key_Long) //if(TIM2_Expired)
 		{
-			printf("key_state: %d\n", key_state);
 			cur_motor_state = MOTOR_STOP;
-			btn_holding_time = 0;
-			key_state = Key_Wait;
-			Uart2_RX_Interrupt_Enable(1);
+			key_state = Key_Pause;
 		}
 
 		if(TIM4_Expired)
 		{
 			printf("MOTOR toggle\n");
-			cur_motor_state = motor_tmp;
-			if(Key_Get_Released() || Uart_Data_In)
-			{
-				key_state = Key_Wait;
-				TIM4_Expired = 0;
-				(void) USART2 ->DR;
-				if(!Uart_Data_In)
-				{
-					Uart2_RX_Interrupt_Enable(1);
-				}
-				else
-				{
-					Key_ISR_Enable(1);
-				}
-				Uart_Data_In = 0;
-			}
+			// cur_motor_state = motor_tmp;
+			cur_motor_state ^= 1;
+			TIM4_Expired = 0;
+			Uart_Data_In = 0;
+			// 이 자리에 Key_ISR_Enable을 넣으면 motor_xxx() 함수를 실행시키기 전에 키가 입력됐을 때 오동작하는 경우 발생
 		}
 	}
 }
