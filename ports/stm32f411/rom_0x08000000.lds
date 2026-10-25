@@ -1,3 +1,5 @@
+ENTRY(__start)
+
 MEMORY
 {
 	ROM  (rx) : ORIGIN = 0x08000000, LENGTH = 512K
@@ -14,7 +16,7 @@ SECTIONS
 	.text :
 	{
 		__RO_BASE__ = .;	
-		crt0.o(.text)
+		*crt0.o(.text)
 		*(.text)
     	. = ALIGN(4); 
 	} > REGION_TEXT
