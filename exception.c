@@ -24,7 +24,6 @@ extern volatile motor_state_t cur_motor_state;
 extern volatile key_state_t key_state;
 
 extern double btn_holding_time;
-extern volatile uint8_t motor_stop_requested;
 
 
 void EXTI15_10_IRQHandler(void)
@@ -32,8 +31,6 @@ void EXTI15_10_IRQHandler(void)
 	
 	if(key_state == Key_Wait)
 	{
-		btn_holding_time = 0;  // 추가: 새로운 버튼 입력의 측정값 초기화
-
 		printf("Key Wait!! -> Key_Hold\n");
 		key_state = Key_Hold;
 		// Key가 눌리면 UART로 데이터를 받으면 안되기 때문에 Disabled 시켜주어야함.
@@ -80,28 +77,11 @@ void EXTI15_10_IRQHandler(void)
 
 void USART2_IRQHandler(void)
 {
-	// 수신 데이터는 한 번만 읽는다.
-	Uart_Data = (unsigned char)USART2->DR;
-	 // 방향 전환 대기 중에도 정지 명령은 항상 접수.
-	if(Uart_Data == 'S' || Uart_Data == 's' || Uart_Data == '0')
-    {
-		motor_stop_requested = 1;
-		return;
-    }
-
-	// 정지 요청을 처리하기 전에는 다른 명령을 무시합니다.
-	if(motor_stop_requested)
-	{
-		return;
-	}
-
-	
-
 	printf("UART RX_INT!!");
     if(Uart_Data_In == 0)
     {
 		printf("Uart_Data_In = 0!!");
-		
+		Uart_Data = (unsigned char)USART2->DR;
         Uart_Data_In = 1;
 
         if(Uart_Data == 'S' || Uart_Data == 's')
