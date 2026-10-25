@@ -13,6 +13,7 @@ volatile motor_state_t cur_motor_state;
 volatile key_state_t key_state = Key_Wait;
 volatile int pre_motor_state = -2;
 volatile double btn_holding_time = 0;
+volatile uint8_t motor_stop_requested = 0;
 
 static void Sys_Init(int baud) 
 {

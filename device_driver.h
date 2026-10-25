@@ -11,9 +11,10 @@
 #define DUTY_DEFAULT 1;
 
 typedef enum{
-	MOTOR_STOP = -1,
+	MOTOR_STOPPED = -1,
 	MOTOR_CW,
-	MOTOR_CCW
+	MOTOR_CCW,
+	MOTOR_REVERSING
 } motor_state_t;
 
 typedef enum{
